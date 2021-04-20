@@ -89,10 +89,8 @@ if __name__ == "__main__":
         if True:
             print("delete from transaction_memo... ")
             transactionStorage.delete_sender("dtube.rewards")
-<<<<<<< HEAD
             transactionStorage.delete_sender("reward.app")
-=======
->>>>>>> 0d37a41606b5235f6fab724c6dcef46eb11cb462
+            transactionStorage.delete_sender("dlease")
             transactionStorage.delete_to("sbi2")
             transactionStorage.delete_to("sbi3")
             transactionStorage.delete_to("sbi4")
@@ -160,8 +158,4 @@ if __name__ == "__main__":
                 pah.parse_op(json_op, parse_vesting=parse_vesting)
     
     
-<<<<<<< HEAD
         print("transfer script run %.2f s" % (time.time() - start_prep_time))
-=======
-        print("transfer script run %.2f s" % (time.time() - start_prep_time))
->>>>>>> 0d37a41606b5235f6fab724c6dcef46eb11cb462

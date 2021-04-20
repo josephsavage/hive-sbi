@@ -114,7 +114,7 @@ if __name__ == "__main__":
         print("could not update nodes")        
     stm = Steem(keys=key_list, node=nodes.get_nodes(hive=hive_blockchain))
 
-<<<<<<< HEAD
+
 #    if False: # check if member are blacklisted
 #        member_accounts = memberStorage.get_all_accounts()
 #        member_data = {}
@@ -134,27 +134,6 @@ if __name__ == "__main__":
 #                    member_data[m]["buildawhale"] = True
 #                else:
 #                    member_data[m]["buildawhale"] = False
-=======
-    if False: # check if member are blacklisted
-        member_accounts = memberStorage.get_all_accounts()
-        member_data = {}
-        n_records = 0
-        share_age_member = {}    
-        for m in member_accounts:
-            member_data[m] = Member(memberStorage.get(m))
-        
-        for m in member_data:
-            response = requests.get("http://blacklist.usesteem.com/user/%s" % m)
-            if "blacklisted" in response.json():
-                if "steemcleaners" in response.json()["blacklisted"]:
-                    member_data[m]["steemcleaners"] = True
-                else:
-                    member_data[m]["steemcleaners"] = False
-                if "buildawhale" in response.json()["blacklisted"]:
-                    member_data[m]["buildawhale"] = True
-                else:
-                    member_data[m]["buildawhale"] = False
->>>>>>> 0d37a41606b5235f6fab724c6dcef46eb11cb462
             
         
         print("write member database")
@@ -452,9 +431,5 @@ if __name__ == "__main__":
                 trxStorage.update_delegation_shares(account, acc, shares)
                 continue
             delegation_leased[acc] = delegation_account[acc]
-            trxStorage.update_delegation_state(account, acc, "Delegation", 
-<<<<<<< HEAD
+            trxStorage.update_delegation_state(account, acc, "Delegation",
                                               "DelegationLeased")
-=======
-                                              "DelegationLeased")
->>>>>>> 0d37a41606b5235f6fab724c6dcef46eb11cb462
