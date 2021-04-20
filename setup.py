@@ -16,24 +16,14 @@ except LookupError:
     ascii = codecs.lookup('ascii')
     codecs.register(lambda name, enc=ascii: {True: enc}.get(name == 'mbcs'))
 
-VERSION = '0.0.1'
+VERSION = '0.1.2'
 
 tests_require = ['mock >= 2.0.0', 'pytest', 'pytest-mock', 'parameterized']
 
 requires = [
-    "future",
-    "ecdsa",
-    "requests",
-    "websocket-client",
-    "appdirs",
-    "Events",
-    "scrypt",
-    "pylibscrypt",
-    "pycryptodomex",
-    "pytz",
-    "Click",
-    "prettytable",
-    "beem"
+    "beem",
+    "dataset",
+    "mysqlclient"
 ]
 
 
@@ -49,7 +39,7 @@ version = '%(version)s'
 def get_long_description():
     """Generate a long description from the README file."""
     descr = []
-    for fname in ('README.rst',):
+    for fname in ('README.md',):
         with io.open(fname, encoding='utf-8') as f:
             descr.append(f.read())
     return '\n\n'.join(descr)
@@ -65,15 +55,15 @@ if __name__ == '__main__':
         version=VERSION,
         description='Steem basic income library',
         long_description=get_long_description(),
-        download_url='https://github.com/holgern/beem/tarball/' + VERSION,
+        download_url='https://github.com/holgern/steembasicincome/tarball/' + VERSION,
         author='Holger Nahrstaedt',
         author_email='holger@nahrstaedt.de',
         maintainer='Holger Nahrstaedt',
         maintainer_email='holger@nahrstaedt.de',
-        url='http://www.github.com/holgern/steembi',
-        keywords=['steem', 'library', 'ubi'],
+        url='http://www.github.com/holgern/steembasicincome',
+        keywords=['steem', 'library', 'ubi', 'steembasicincome'],
         packages=[
-            "steembi",
+            "steembi"
         ],
         classifiers=[
             'License :: OSI Approved :: MIT License',
@@ -86,7 +76,6 @@ if __name__ == '__main__':
             'Programming Language :: Python :: 3.6',
             'Development Status :: 4 - Beta',
             'Intended Audience :: Developers',
-            'Intended Audience :: Financial and Insurance Industry',
             'Topic :: Office/Business :: Financial',
         ],
         install_requires=requires,

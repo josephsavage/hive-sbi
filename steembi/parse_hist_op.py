@@ -16,35 +16,49 @@ from beem.utils import formatTimeString, formatTimedelta, remove_from_dict, repu
 from beem.amount import Amount
 from beem.account import Account
 from beem.vote import Vote
+from beem.memo import Memo
 from beem.instance import shared_steem_instance
 from beem.blockchain import Blockchain
 from beem.constants import STEEM_VOTE_REGENERATION_SECONDS, STEEM_1_PERCENT, STEEM_100_PERCENT
+from steembi.memo_parser import MemoParser
+
 
 log = logging.getLogger(__name__)
 
 
 class ParseAccountHist(list):
     
-    def __init__(self, account, path, transfer_table, steem_instance=None):
+    def __init__(self, account, path, trxStorage, transactionStorage, transactionOutStorage, member_data, memberStorage = None, steem_instance=None):
         self.steem = steem_instance or shared_steem_instance()
         self.account = Account(account, steem_instance=self.steem)    
         self.delegated_vests_in = {}
         self.delegated_vests_out = {}
         self.timestamp = addTzInfo(datetime(1970, 1, 1, 0, 0, 0, 0))
         self.path = path
+        self.member_data = member_data
+        self.memberStorage = memberStorage
+        self.memo_parser = MemoParser(steem_instance=self.steem)
         self.excluded_accounts = ["minnowbooster", "smartsteem", "randowhale", "steemvoter", "jerrybanfield",
                                   "boomerang", "postpromoter", "appreciator", "buildawhale", "upme", "smartmarket",
-                                  "minnowhelper", "pushup", "steembasicincome", "sbi2", "sbi3", "sbi4", "sbi5", "sbi6", "sbi7", "sbi8"]
+                                  "minnowhelper", "pushup", "steembasicincome", "sbi2", "sbi3", "sbi4", "sbi5", "sbi6", "sbi7", "sbi8", "sbi9"]
 
-        self.allowed_memo_words = ['for', 'and', 'sponsor', 'shares', 'share', 'sponsorship',
-                                   'please', 'steem', 'thanks', 'additional',
-                                   'sponsee', 'sponsoring', 'sponser', 'one', 'you', 'thank', 'enroll',
-                                   'sponsering:', 'sponsoring;', 'sponsoring:', 'would', 'like', 'too', 'enroll:',
-                                   'sponsor:']
+        self.trxStorage = trxStorage
+        self.transactionStorage = transactionStorage
+        self.transactionOutStorage = transactionOutStorage
 
-        self.transfer_table = transfer_table
+    def get_highest_avg_share_age_account(self):
+        max_avg_share_age = 0
+        account_name = None
+        for m in self.member_data:
+            self.member_data[m].calc_share_age()
+        for m in self.member_data:  
+            if max_avg_share_age < self.member_data[m]["avg_share_age"]:
+                max_avg_share_age = self.member_data[m]["avg_share_age"]
+                account_name = m
 
-    def update_delegation(self, timestamp, delegated_in=None, delegated_out=None):
+        return account_name
+
+    def update_delegation(self, op, delegated_in=None, delegated_out=None):
         """ Updates the internal state arrays
 
             :param datetime timestamp: datetime of the update
@@ -56,16 +70,18 @@ class ParseAccountHist(list):
 
         """
 
-        self.timestamp = timestamp
+        self.timestamp = op["timestamp"]
 
         new_deleg = dict(self.delegated_vests_in)
         if delegated_in is not None and delegated_in:
             if delegated_in['amount'] == 0 and delegated_in['account'] in new_deleg:
+                self.new_delegation_record(op["index"], delegated_in['account'], delegated_in['amount'], op["timestamp"], share_type="RemovedDelegation")
                 del new_deleg[delegated_in['account']]
             elif delegated_in['amount']  > 0:
+                self.new_delegation_record(op["index"], delegated_in['account'], delegated_in['amount'], op["timestamp"], share_type="Delegation")
                 new_deleg[delegated_in['account']] = delegated_in['amount']
             else:
-                print(delegated_in)
+                self.new_delegation_record(op["index"], delegated_in['account'], delegated_in['amount'], op["timestamp"], share_type="RemovedDelegation")
         self.delegated_vests_in = new_deleg
 
         new_deleg = dict(self.delegated_vests_out)
@@ -85,8 +101,7 @@ class ParseAccountHist(list):
                 # del new_deleg[delegated_out['account']]
 
         self.delegated_vests_out = new_deleg
-        if self.path is None:
-            return
+
         delegated_sp_in = {}
         for acc in self.delegated_vests_in:
             vests = Amount(self.delegated_vests_in[acc])
@@ -95,226 +110,152 @@ class ParseAccountHist(list):
         for acc in self.delegated_vests_out:
             vests = Amount(self.delegated_vests_out[acc])
             delegated_sp_out[acc] = str(self.steem.vests_to_sp(vests))
-        with open(self.path + 'sbi_delegation_in_'+self.account["name"]+'.txt', 'w') as the_file:
-            the_file.write(str(delegated_sp_in) + '\n')
-        with open(self.path + 'sbi_delegation_out_'+self.account["name"]+'.txt', 'w') as the_file:
-            the_file.write(str(delegated_sp_out) + '\n')
 
-    def parse_memo(self, memo, shares, account):
-        words_memo = memo.lower().replace(',', '  ').replace('"', '').split(" ")
-        sponsors = {}
-        no_numbers = True
-        amount_left = shares
-        word_count = 0
-        not_parsed_words = []
-        n_words = len(words_memo)
-        digit_found = None
-        sponsor = None
-        account_error = False
+        if self.path is None:
+            return        
+        #with open(self.path + 'sbi_delegation_in_'+self.account["name"]+'.txt', 'w') as the_file:
+        #    the_file.write(str(delegated_sp_in) + '\n')
+        #with open(self.path + 'sbi_delegation_out_'+self.account["name"]+'.txt', 'w') as the_file:
+        #    the_file.write(str(delegated_sp_out) + '\n')
 
-        for w in words_memo:
-            if len(w) == 0:
-                continue            
-            if w in self.allowed_memo_words:
-                continue
-            if amount_left >= 1:
-                account_name = ""
-                account_found = False
-                w_digit = w.replace('x', '', 1).replace('-', '', 1).replace(';', '', 1)
-                if w_digit.isdigit():
-                    no_numbers = False
-                    digit_found = int(w_digit)
-                elif len(w) < 3:
-                    continue
-                elif w[:21] == 'https://steemit.com/@' and '/' not in w[21:]:
-                    try:
-                        account_name = w[21:].replace('!', '').replace('"', '').replace(';', '')
-                        if account_name[-1] == '.':
-                            account_name = account_name[:-1]                        
-                        acc = Account(account_name)
-                        account_found = True
-                    except:
-                        print(account_name + " is not an account")
-                        account_error = True
-                elif len(w.split(":")) == 2 and '/' not in w:
-                    try:
-                        account_name1 = w.split(":")[0]
-                        account_name = w.split(":")[1]
-                        if account_name1[0] == '@':
-                            account_name1 = account_name1[1:]
-                        if account_name[0] == '@':
-                            account_name = account_name[1:]                            
-                        acc1 = Account(account_name1)
-                        acc = Account(account_name)
-                        account_found = True
-                        if sponsor is None:
-                            sponsor = account_name1
-                        else:
-                            account_error = True
-                    except:
-                        print(account_name + " is not an account")
-                        account_error = True                    
-                elif w[0] == '@':
-                    
-                    try:
-                        account_name = w[1:].replace('!', '').replace('"', '').replace(';', '')
-                        if account_name[-1] == '.':
-                            account_name = account_name[:-1]
-                        acc = Account(account_name)
-                        account_found = True
 
-                    except:
-                        print(account_name + " is not an account")
-                        account_error = True
-                        
-                elif len(w) > 16:
-                    continue
-                
-                else:
-                    try:
-                        account_name = w.replace('!', '').replace('"', '')
-                        if account_name[-1] == '.':
-                            account_name = account_name[:-1]
-                        acc = Account(account_name)
-                        account_found = True
-                    except:
-                        print(account_name + " is not an account")                
-                        not_parsed_words.append(w)
-                        word_count += 1
-                        account_error = True
-                if account_found and account_name != '' and account_name != account:
-                    if digit_found is not None:
-                        sponsors[account_name] = digit_found
-                        amount_left -= digit_found
-                        digit_found = None
-                    elif account_name in sponsors:
-                        sponsors[account_name] += 1
-                        amount_left -= 1                        
-                    else:
-                        sponsors[account_name] = 1
-                        amount_left -= 1                
-        if n_words == 1 and len(sponsors) == 0:
-            try:
-                account_name = words_memo[0].replace(',', ' ').replace('!', ' ').replace('"', '').replace('/', ' ')
-                if account_name[-1] == '.':
-                    account_name = account_name[:-1]                        
-                Account(account_name)
-                if account_name != account:
-                    sponsors[account_name] = 1
-                    amount_left -= 1
-            except:
-                print(account_name + " is not an account")
-        if len(sponsors) == 1 and shares > 1 and no_numbers:
-            for a in sponsors:
-                sponsors[a] = shares
-        elif len(sponsors) == 1 and shares > 1 and not no_numbers and digit_found is not None:
-            for a in sponsors:
-                sponsors[a] = digit_found
-        elif len(sponsors) > 0 and shares % len(sponsors) == 0 and no_numbers:
-            for a in sponsors:
-                sponsors[a] = shares // len(sponsors)
-        if sponsor is None:
-            sponsor = account
-        if account_error and len(sponsors) == shares:
-            account_error = False
-        return sponsor, sponsors, not_parsed_words, account_error
 
     def parse_transfer_out_op(self, op):
         amount = Amount(op["amount"], steem_instance=self.steem)
+        index = op["index"]
+        account = op["from"]
+        timestamp = op["timestamp"]
+        encrypted = False
+        processed_memo = ascii(op["memo"]).replace('\n', '').replace('\\n', '').replace('\\', '')
+        if len(processed_memo) > 2 and (processed_memo[0] == '#' or processed_memo[1] == '#' or processed_memo[2] == '#') and account == "steembasicincome":
+            if processed_memo[1] == '#':
+                processed_memo = processed_memo[1:-1]
+            elif processed_memo[2] == '#':
+                processed_memo = processed_memo[2:-2]        
+            memo = Memo(account, op["to"], steem_instance=self.steem)
+            processed_memo = ascii(memo.decrypt(processed_memo)).replace('\n', '')
+            encrypted = True
+        
         if amount.amount < 1:
-            if self.path is None:
-                return
-            with open(self.path + 'sbi_skipped_transfer_out.txt', 'a') as the_file:
-                the_file.write(ascii(op) + '\n')
+            data = {"index": index, "sender": account, "to": op["to"], "memo": processed_memo, "encrypted": encrypted, "referenced_accounts": None, "amount": amount.amount, "amount_symbol": amount.symbol, "timestamp": timestamp}
+            self.transactionOutStorage.add(data)            
             return
-        if amount.symbol == "SBD":
-            
-            shares = -amount.amount
-            self.new_transfer_record(op["index"], op["to"], "", shares, op["timestamp"], share_type=share_type)
-            if self.path is None:
+        if amount.symbol == self.steem.sbd_symbol:
+            # self.trxStorage.get_account(op["to"], share_type="SBD")
+            shares = -int(amount.amount)
+            if "http" in op["memo"] or self.steem.steem_symbol not in op["memo"]:
+                data = {"index": index, "sender": account, "to": op["to"], "memo": processed_memo, "encrypted": encrypted, "referenced_accounts": None, "amount": amount.amount, "amount_symbol": amount.symbol, "timestamp": timestamp}
+                self.transactionOutStorage.add(data)                
                 return
-            with open(self.path + 'sbi_skipped_SBD_transfer_out.txt', 'a') as the_file:
-                the_file.write(ascii(op) + '\n')
+            trx = self.trxStorage.get_SBD_transfer(op["to"], shares, formatTimeString(op["timestamp"]), SBD_symbol=self.steem.sbd_symbol)
+            sponsee = json.dumps({})
+            if trx:
+                sponsee = trx["sponsee"]
+            self.new_transfer_record(op["index"], processed_memo, op["to"], op["to"], sponsee, shares, op["timestamp"], share_type="Refund")
+            # self.new_transfer_record(op["index"], op["to"], "", shares, op["timestamp"], share_type="Refund")
+            data = {"index": index, "sender": account, "to": op["to"], "memo": processed_memo, "encrypted": encrypted, "referenced_accounts": sponsee, "amount": amount.amount, "amount_symbol": amount.symbol, "timestamp": timestamp}
+            self.transactionOutStorage.add(data)             
             return
+
         else:
-            if self.path is None:
-                return
-            with open(self.path + 'sbi_skipped_STEEM_transfer_out.txt', 'a') as the_file:
-                the_file.write(ascii(op) + '\n')
+            data = {"index": index, "sender": account, "to": op["to"], "memo": processed_memo, "encrypted": encrypted, "referenced_accounts": None, "amount": amount.amount, "amount_symbol": amount.symbol, "timestamp": timestamp}
+            self.transactionOutStorage.add(data)
             return            
 
     def parse_transfer_in_op(self, op):
         amount = Amount(op["amount"], steem_instance=self.steem)
-        share_type = "standard"
-        if amount.amount < 1:
-            if self.path is None:
-                return
-            with open(self.path + 'sbi_skipped_transfer.txt', 'a') as the_file:
-                the_file.write(ascii(op) + '\n')
-            return
-        if amount.symbol == "SBD":
-            share_type = "SBD"
-
+        share_type = "Standard"
         index = op["index"]
         account = op["from"]
         timestamp = op["timestamp"]
         sponsee = {}
-        memo = op["memo"]
+        processed_memo = ascii(op["memo"]).replace('\n', '').replace('\\n', '').replace('\\', '')
+        if len(processed_memo) > 2 and (processed_memo[0] == '#' or processed_memo[1] == '#' or processed_memo[2] == '#') and account == "steembasicincome":
+            if processed_memo[1] == '#':
+                processed_memo = processed_memo[1:-1]
+            elif processed_memo[2] == '#':
+                processed_memo = processed_memo[2:-2]        
+            memo = Memo(account, op["to"], steem_instance=self.steem)
+            processed_memo = ascii(memo.decrypt(processed_memo)).replace('\n', '')
+
         shares = int(amount.amount)
-        if memo.lower().replace(',', '  ').replace('"', '') == "":
-            self.new_transfer_record(index, account, account, sponsee, shares, timestamp)
+        if processed_memo.lower().replace(',', '  ').replace('"', '') == "":
+            self.new_transfer_record(index, processed_memo, account, account, json.dumps(sponsee), shares, timestamp)
             return
-        [sponsor, sponsee, not_parsed_words, account_error] = self.parse_memo(memo, shares, account)
+        [sponsor, sponsee, not_parsed_words, account_error] = self.memo_parser.parse_memo(processed_memo, shares, account)        
+        if amount.amount < 1:
+            data = {"index": index, "sender": account, "to": self.account["name"], "memo": processed_memo, "encrypted": False, "referenced_accounts": sponsor + ";" + json.dumps(sponsee), "amount": amount.amount, "amount_symbol": amount.symbol, "timestamp": timestamp}
+            self.transactionStorage.add(data)
+            return
+        if amount.symbol == self.steem.sbd_symbol:
+            share_type = self.steem.sbd_symbol
         
         sponsee_amount = 0
         for a in sponsee:
             sponsee_amount += sponsee[a]
         
         
-        if sponsee_amount == 0 and not account_error:
-            message = op["timestamp"] + " to: " + self.account["name"] + " from: " + sponsor + ' amount: ' + str(amount) + ' memo: ' + ascii(op["memo"]) + '\n'
-            if self.path is None:
-                return            
-            with open(self.path + 'sbi_no_sponsee.txt', 'a') as the_file:
-                the_file.write(message)
+        if sponsee_amount == 0 and not account_error and True:
+            sponsee_account = self.get_highest_avg_share_age_account()
+            sponsee = {sponsee_account: shares}
+            print("%s sponsers %s with %d shares" % (sponsor, sponsee_account, shares))
+            self.new_transfer_record(index, processed_memo, account, sponsor, json.dumps(sponsee), shares, timestamp, share_type=share_type)
+            self.memberStorage.update_avg_share_age(sponsee_account, 0)
+            self.member_data[sponsee_account]["avg_share_age"] = 0            
             return
-        if sponsee_amount != shares and not account_error:
+        elif sponsee_amount == 0 and not account_error:
+            sponsee = {}
+            message = op["timestamp"] + " to: " + self.account["name"] + " from: " + sponsor + ' amount: ' + str(amount) + ' memo: ' + processed_memo + '\n'
+            self.new_transfer_record(index, processed_memo, account, sponsor, json.dumps(sponsee), shares, timestamp, status="LessOrNoSponsee", share_type=share_type)
+            return
+        if sponsee_amount != shares and not account_error and True:
+            sponsee_account = self.get_highest_avg_share_age_account()
+            sponsee_shares = shares-sponsee_amount
+            if sponsee_shares > 0 and sponsee_account is not None:
+                sponsee = {sponsee_account: sponsee_shares}
+                print("%s sponsers %s with %d shares" % (sponsor, sponsee_account, sponsee_shares))
+                self.new_transfer_record(index, processed_memo, account, sponsor, json.dumps(sponsee), shares, timestamp, share_type=share_type)
+                self.memberStorage.update_avg_share_age(sponsee_account, 0)
+                self.member_data[sponsee_account]["avg_share_age"] = 0
+                return
+            else:
+                sponsee = {}
+                self.new_transfer_record(index, processed_memo, account, sponsor, json.dumps(sponsee), shares, timestamp, status="LessOrNoSponsee", share_type=share_type)
+                return
+        elif sponsee_amount != shares and not account_error:
             message = op["timestamp"] + " to: " + self.account["name"] + " from: " + sponsor + ' amount: ' + str(amount) + ' memo: ' + ascii(op["memo"]) + '\n'
-            if self.path is None:
-                return            
-            with open(self.path + 'sbi_wrong_amount.txt', 'a') as the_file:
-                the_file.write(message)
+            self.new_transfer_record(index, processed_memo, account, sponsor, json.dumps(sponsee), shares, timestamp, status="LessOrNoSponsee", share_type=share_type)            
+
             return        
         if account_error:
             message = op["timestamp"] + " to: " + self.account["name"] + " from: " + sponsor + ' amount: ' + str(amount) + ' memo: ' + ascii(op["memo"]) + '\n'
-            if self.path is None:
-                return            
-            with open(self.path + 'sbi_wrong_account_name.txt', 'a') as the_file:
-                the_file.write(message)
+            self.new_transfer_record(index, processed_memo, account, sponsor, json.dumps(sponsee), shares, timestamp, status="AccountDoesNotExist", share_type=share_type)
+
             return
         
-        self.new_transfer_record(index, account, sponsor, sponsee, shares, timestamp, share_type=share_type)
+        self.new_transfer_record(index, processed_memo, account, sponsor, json.dumps(sponsee), shares, timestamp, share_type=share_type)
 
-    def new_transfer_record(self, index, account, sponsor, sponsee, shares, timestamp, share_age=1, status="valid", share_type="standard"):
-        data = {"index": index, "account": account, "sponsor": sponsor, "sponsee": sponsee, "shares": shares, "timestamp": timestamp,
-                "share_age": share_age, "status": status, "share_type": share_type}
-        self.transfer_table.append(data)
-        if self.path is None:
-            return        
-        with open(self.path + 'sbi_transfer_ok.txt', 'a') as the_file:
-            the_file.write(str(data) + '\n')
+    def new_transfer_record(self, index, memo, account, sponsor, sponsee, shares, timestamp,  status="Valid", share_type="Standard"):
+        data = {"index": index, "source": self.account["name"], "memo": memo, "account": account, "sponsor": sponsor, "sponsee": sponsee, "shares": shares, "vests": float(0), "timestamp": formatTimeString(timestamp),
+                 "status": status, "share_type": share_type}
+        self.trxStorage.add(data)
 
-    def parse_op(self, op):
-        if op['type'] == "delegate_vesting_shares":
+    def new_delegation_record(self, index, account, vests, timestamp, status="Valid", share_type="Delegation"):
+        data = {"index": index, "source": self.account["name"], "memo": "", "account": account, "sponsor": account, "sponsee": json.dumps({}), "shares": 0, "vests": float(vests), "timestamp": formatTimeString(timestamp),
+                "status": status, "share_type": share_type}
+        self.trxStorage.add(data)
+
+    def parse_op(self, op, parse_vesting=True):
+        if op['type'] == "delegate_vesting_shares" and parse_vesting:
             vests = Amount(op['vesting_shares'], steem_instance=self.steem)
             # print(op)
             if op['delegator'] == self.account["name"]:
                 delegation = {'account': op['delegatee'], 'amount': vests}
-                self.update_delegation(op["timestamp"], 0, delegation)
+                self.update_delegation(op, 0, delegation)
                 return
             if op['delegatee'] == self.account["name"]:
                 delegation = {'account': op['delegator'], 'amount': vests}
-                self.update_delegation(op["timestamp"], delegation, 0)
+                self.update_delegation(op, delegation, 0)
                 return
 
         elif op['type'] == "transfer":
@@ -328,4 +269,24 @@ class ParseAccountHist(list):
                 
             # print(op, vests)
             # self.update(ts, vests, 0, 0)
-            return        
+            return
+
+    def add_mngt_shares(self, last_op, mgnt_shares, op_count):
+        
+        index = last_op["index"]
+        timestamp = last_op["timestamp"]
+        sponsee = {}
+        memo = ""
+        latest_share = self.trxStorage.get_lastest_share_type("Mgmt")
+        if latest_share is not None:
+            start_index = latest_share["index"] + 1
+        else:
+            start_index = op_count / 100 * 3
+        for account in mgnt_shares:
+            shares = mgnt_shares[account]
+            sponsor = account
+            data = {"index": start_index, "source": "mgmt", "memo": "", "account": account, "sponsor": sponsor, "sponsee": sponsee, "shares": shares, "vests": float(0), "timestamp": formatTimeString(timestamp),
+                     "status": "Valid", "share_type": "Mgmt"}
+            start_index += 1
+            self.trxStorage.add(data)
+
