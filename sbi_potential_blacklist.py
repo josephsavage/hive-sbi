@@ -1,4 +1,4 @@
-from beem.vote import AccountVotes
+from beem import vote
 from datetime import datetime
 import pytz
 from datetime import timedelta
@@ -18,7 +18,7 @@ if __name__ == "__main__":
     tz = pytz.timezone('US/Eastern')
     start_date = tz.localize(yesterday)
 
-    votes = AccountVotes('hivewatchers', start=start_date)
+    votes = vote.AccountVotes('hivewatchers', start=start_date)
 
     # Down Votes have a weight of 0.
     down_voted_accounts = set()
