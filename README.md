@@ -12,7 +12,7 @@ apt-get install libmariadbclient-dev
 ```
 
 ```
-pip3 install beem dataset  mysqlclient
+pip3 install beem dataset mysqlclient future
 ```
 
 Compile and install steembi, the helper library for all steembasicincome scripts
@@ -22,6 +22,12 @@ python setup.py install
 ```
 
 ### Prepare the database
+
+Create schemas with the following names: 
+- sbi
+- sbi_steem_ops
+
+Run the following commands to configure the tables.
 
 ```
 mysql -u username -p sbi < sql/sbi.sql
@@ -60,7 +66,7 @@ systemctl list-timers
 
 ## Config file for accesing the database
 
-A file `config.json` needs to be created:
+A file `config.json` needs to be created in the top-level project directory:
 
 ```
 {
@@ -87,3 +93,5 @@ python3 sbi_stream_post_comment.py
 python3 sbi_check_delegation.py
 
 ```
+
+Note: The configuration table needs one entry for any of the scripts to run.
