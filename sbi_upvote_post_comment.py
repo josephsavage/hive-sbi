@@ -1,7 +1,10 @@
 from beem.utils import formatTimeString, resolve_authorperm, construct_authorperm, addTzInfo
 from beem.nodelist import NodeList
 from beem.comment import Comment
+<<<<<<< HEAD
 from beem import Hive
+=======
+>>>>>>> 0d37a41606b5235f6fab724c6dcef46eb11cb462
 from beem import Steem
 from datetime import datetime, timedelta
 from beem.instance import set_shared_steem_instance
@@ -15,7 +18,11 @@ import math
 import dataset
 from datetime import date, datetime, timedelta
 from dateutil.parser import parse
+<<<<<<< HEAD
 from beem.constants import HIVE_100_PERCENT, STEEM_100_PERCENT
+=======
+from beem.constants import STEEM_100_PERCENT 
+>>>>>>> 0d37a41606b5235f6fab724c6dcef46eb11cb462
 from steembi.transfer_ops_storage import TransferTrx, AccountTrx, PostsTrx
 from steembi.storage import TrxDB, MemberDB, ConfigurationDB, AccountsDB, KeysDB
 from steembi.parse_hist_op import ParseAccountHist
@@ -150,7 +157,11 @@ if __name__ == "__main__":
             continue
         if member["blacklisted"]:
             continue
+<<<<<<< HEAD
         elif member["blacklisted"] is None and (member["hivewatchers"] or member["buildawhale"]):
+=======
+        elif member["blacklisted"] is None and (member["steemcleaners"] or member["buildawhale"]):
+>>>>>>> 0d37a41606b5235f6fab724c6dcef46eb11cb462
             continue
 
         if post_list[authorperm]["main_post"] == 1:
@@ -235,7 +246,11 @@ if __name__ == "__main__":
                 while not vote_sucessfull and cnt < 5:
                     try:
                         c.upvote(vote_percentage, voter=voter)
+<<<<<<< HEAD
                         time.sleep(6)
+=======
+                        time.sleep(4)
+>>>>>>> 0d37a41606b5235f6fab724c6dcef46eb11cb462
                         c.refresh()
                         for v in c.get_votes():
                             if voter == v["voter"]:
@@ -248,9 +263,15 @@ if __name__ == "__main__":
                                     voted_after = (v["last_update"] - c["created"]).total_seconds()                                    
                     except Exception as e:
                         print(e)
+<<<<<<< HEAD
                         time.sleep(6)
                         if cnt > 0:
                             c.blockchain.rpc.next()
+=======
+                        time.sleep(4)
+                        if cnt > 0:
+                            c.steem.rpc.next()
+>>>>>>> 0d37a41606b5235f6fab724c6dcef46eb11cb462
                         print("retry to vote %s" % c["authorperm"])
                     cnt += 1
                 if vote_sucessfull:
@@ -306,7 +327,11 @@ if __name__ == "__main__":
                         while not vote_sucessfull and cnt < 5:
                             try:
                                 c.upvote(vote_percentage, voter=voter)
+<<<<<<< HEAD
                                 time.sleep(6)
+=======
+                                time.sleep(4)
+>>>>>>> 0d37a41606b5235f6fab724c6dcef46eb11cb462
                                 c.refresh()
                                 for v in c.get_votes():
                                     if voter == v["voter"]:
@@ -317,9 +342,15 @@ if __name__ == "__main__":
                                             vote_time = v["last_update"]
                             except Exception as e:
                                 print(e)
+<<<<<<< HEAD
                                 time.sleep(6)
                                 if cnt > 0:
                                     c.blockchain.rpc.next()
+=======
+                                time.sleep(4)
+                                if cnt > 0:
+                                    c.steem.rpc.next()
+>>>>>>> 0d37a41606b5235f6fab724c6dcef46eb11cb462
                                 print("retry to vote %s" % c["authorperm"])
                             cnt += 1
                         if vote_sucessfull:
@@ -343,7 +374,11 @@ if __name__ == "__main__":
                     while not vote_sucessfull and cnt < 5:
                         try:
                             c.upvote(vote_percentage, voter=voter)
+<<<<<<< HEAD
                             time.sleep(6)
+=======
+                            time.sleep(4)
+>>>>>>> 0d37a41606b5235f6fab724c6dcef46eb11cb462
                             c.refresh()
                             for v in c.get_votes():
                                 if voter == v["voter"]:
@@ -356,9 +391,15 @@ if __name__ == "__main__":
                                         voted_after = (v["last_update"] - c["created"]).total_seconds()                                        
                         except Exception as e:
                             print(e)
+<<<<<<< HEAD
                             time.sleep(6)
                             if cnt > 0:
                                 c.blockchain.rpc.next()
+=======
+                            time.sleep(4)
+                            if cnt > 0:
+                                c.steem.rpc.next()
+>>>>>>> 0d37a41606b5235f6fab724c6dcef46eb11cb462
                             print("retry to vote %s" % c["authorperm"])
                         cnt += 1
                     if vote_sucessfull:
@@ -370,3 +411,10 @@ if __name__ == "__main__":
             print("rshares_sum %d" % rshares_sum)
     print("upvote script run %.2f s" % (time.time() - start_prep_time))
             
+<<<<<<< HEAD
+=======
+            
+            
+            
+     
+>>>>>>> 0d37a41606b5235f6fab724c6dcef46eb11cb462
