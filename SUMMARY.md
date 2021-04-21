@@ -1,4 +1,7 @@
 # Table of contents
 
-* [Getting Started](README.md)
+* [Hive-SBI](README.md)
+* [docs](docs/README.md)
+  * [Summary](docs/summary.md)
+  * [Welcome](docs/welcome.md)
 
