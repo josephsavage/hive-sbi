@@ -12,6 +12,6 @@ beempy updatenodes --hive
 
 /usr/local/bin/python3.6 -u /root/steembasicincome/sbi_stream_post_comment.py
 
-/usr/local/bin/python3.6 -u /root/steembasicincome/sbi_potential_blacklist.py
+#/usr/local/bin/python3.6 -u /root/steembasicincome/sbi_potential_blacklist.py
 
 #/usr/local/bin/python3.6 -u /root/steembasicincome/sbi_reset_rshares.py
