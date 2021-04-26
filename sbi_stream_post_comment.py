@@ -190,11 +190,7 @@ if __name__ == "__main__":
         if ops["author"] not in changed_member_data:
             changed_member_data.append(ops["author"])
         if main_post:
-            if "last_update" in c:
-                last_update = c["last_update"]
-            else:
-                last_update = c["updated"]
-            if c["created"] == last_update:
+            if c["created"] == c["last_update"]:
                 member_data[ops["author"]]["last_post"] = c["created"]
                 member_data[ops["author"]]["comment_upvote"] = 0
         else:
@@ -305,3 +301,4 @@ if __name__ == "__main__":
         posts_dict = {}        
 
     print("stream posts script run %.2f s" % (time.time() - start_prep_time))
+        
