@@ -129,7 +129,7 @@ if __name__ == "__main__":
         if k["key_type"] == 'posting':
             keys_list.append(k["wif"].replace("\n", '').replace('\r', ''))    
     node_list = nodes.get_nodes(hive=hive_blockchain)
-    stm = Steem(node=node_list, keys=keys_list, num_retries=5, call_num_retries=3, timeout=15, nobroadcast=nobroadcast) 
+    stm = Hive(node=node_list, keys=keys_list, num_retries=5, call_num_retries=3, timeout=15, nobroadcast=nobroadcast) 
     
     b = Blockchain(steem_instance = stm)
     print("deleting old posts")
