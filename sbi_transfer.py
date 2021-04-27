@@ -74,7 +74,7 @@ if __name__ == "__main__":
             nodes.update_nodes()
         except:
             print("could not update nodes")    
-        stm = Steem(keys=key_list, node=nodes.get_nodes(hive=hive_blockchain))
+        stm = Hive(keys=key_list, node=nodes.get_nodes(hive=hive_blockchain))
         # set_shared_steem_instance(stm)    
         
         # print("load member database")
