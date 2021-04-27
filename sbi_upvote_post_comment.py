@@ -53,7 +53,7 @@ if __name__ == "__main__":
     
     last_cycle = conf_setup["last_cycle"]
     share_cycle_min = conf_setup["share_cycle_min"]
-    sp_share_ratio = conf_setup["sp_share_ratio"]
+    hp_share_ratio = conf_setup["hp_share_ratio"]
     rshares_per_cycle = conf_setup["rshares_per_cycle"]
     minimum_vote_threshold = conf_setup["minimum_vote_threshold"]
     comment_vote_divider = conf_setup["comment_vote_divider"]
