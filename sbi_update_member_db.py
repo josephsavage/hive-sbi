@@ -275,7 +275,7 @@ if __name__ == "__main__":
                         # print("del. bonus_shares: %s - %d" % (op["sponsor"], op["shares"]))
                         delegation[op["sponsor"]] = op["shares"]
                     elif op["vests"] > 0 and op["sponsor"] in member_data:
-                        sp = stm.vests_to_hp(float(op["vests"]))
+                        hp = stm.vests_to_hp(float(op["vests"]))
                         delegation[op["sponsor"]] = int(hp / hp_share_ratio)
                     # memo_sp_delegation(transferMemos, memo_transfer_acc, op["sponsor"], delegation[op["sponsor"]], sp_share_ratio)
                     delegation_timestamp[op["sponsor"]] = timestamp
