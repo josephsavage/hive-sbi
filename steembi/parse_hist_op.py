@@ -19,7 +19,7 @@ from beem.vote import Vote
 from beem.memo import Memo
 from beem.instance import shared_steem_instance
 from beem.blockchain import Blockchain
-from beem.constants import STEEM_VOTE_REGENERATION_SECONDS, STEEM_1_PERCENT, STEEM_100_PERCENT
+from beem.constants import STEEM_VOTE_REGENERATION_SECONDS, STEEM_1_PERCENT, STEEM_100_PERCENT, HIVE_VOTE_REGENERATION_SECONDS, HIVE_1_PERCENT, HIVE_100_PERCENT
 from steembi.memo_parser import MemoParser
 
 
@@ -140,7 +140,7 @@ class ParseAccountHist(list):
             data = {"index": index, "sender": account, "to": op["to"], "memo": processed_memo, "encrypted": encrypted, "referenced_accounts": None, "amount": amount.amount, "amount_symbol": amount.symbol, "timestamp": timestamp}
             self.transactionOutStorage.add(data)            
             return
-        if amount.symbol == self.steem.sbd_symbol:
+        if amount.symbol == self.hive.hbd_symbol:
             # self.trxStorage.get_account(op["to"], share_type="SBD")
             shares = -int(amount.amount)
             if "http" in op["memo"] or self.steem.steem_symbol not in op["memo"]:
