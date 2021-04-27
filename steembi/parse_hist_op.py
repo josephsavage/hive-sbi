@@ -140,7 +140,7 @@ class ParseAccountHist(list):
             data = {"index": index, "sender": account, "to": op["to"], "memo": processed_memo, "encrypted": encrypted, "referenced_accounts": None, "amount": amount.amount, "amount_symbol": amount.symbol, "timestamp": timestamp}
             self.transactionOutStorage.add(data)            
             return
-        if amount.symbol == self.hive.hbd_symbol:
+        if amount.symbol == self.steem.hbd_symbol:
             # self.trxStorage.get_account(op["to"], share_type="SBD")
             shares = -int(amount.amount)
             if "http" in op["memo"] or self.steem.steem_symbol not in op["memo"]:
