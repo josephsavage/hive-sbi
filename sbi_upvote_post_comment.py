@@ -2,9 +2,8 @@ from beem.utils import formatTimeString, resolve_authorperm, construct_authorper
 from beem.nodelist import NodeList
 from beem.comment import Comment
 from beem import Hive
-from beem import Steem
 from datetime import datetime, timedelta
-from beem.instance import set_shared_steem_instance
+from beem.instance import set_shared_hive_instance
 from beem.blockchain import Blockchain
 from beem.account import Account
 from beem.vote import Vote
