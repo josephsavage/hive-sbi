@@ -1,6 +1,6 @@
 from beem.account import Account
 from beem.amount import Amount
-from beem import Steem
+from beem import Hive
 from beem.instance import set_shared_steem_instance
 from beem.nodelist import NodeList
 from beem.utils import formatTimeString
