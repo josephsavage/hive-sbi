@@ -2,6 +2,7 @@ from beem.account import Account
 from beem.amount import Amount
 from beem.comment import Comment
 from beem import Steem
+from beem import Hive
 from beem.instance import set_shared_steem_instance
 from beem.nodelist import NodeList
 from beem.blockchain import Blockchain
@@ -50,7 +51,7 @@ if __name__ == "__main__":
     
     last_cycle = conf_setup["last_cycle"]
     share_cycle_min = conf_setup["share_cycle_min"]
-    sp_share_ratio = conf_setup["sp_share_ratio"]
+    hp_share_ratio = conf_setup["hp_share_ratio"]
     rshares_per_cycle = conf_setup["rshares_per_cycle"]
     upvote_multiplier = conf_setup["upvote_multiplier"]
     last_paid_post = conf_setup["last_paid_post"]
@@ -88,14 +89,14 @@ if __name__ == "__main__":
         print("could not update nodes")
         
     node_list = nodes.get_nodes(hive=hive_blockchain)
-    stm = Steem(node=node_list, num_retries=3, timeout=10)
+    stm = Hive(node=node_list, num_retries=3, timeout=10)
     # print(str(stm))
-    set_shared_steem_instance(stm)
+    set_shared_hive_instance(stm)
     
     accountTrx = {}
     accountTrx = MemberHistDB(db)
 
-    b = Blockchain(steem_instance=stm)
+    b = Blockchain(hive_instance=stm)
     current_block = b.get_current_block()
     stop_time = latest_enrollment
     stop_time = current_block["timestamp"]
@@ -158,7 +159,7 @@ if __name__ == "__main__":
             if op["author"] not in member_accounts:
                 continue
             try:
-                c = Comment(op, use_tags_api=True, steem_instance=stm)
+                c = Comment(op, use_tags_api=True, hive_instance=stm)
                 c.refresh()
             except:
                 continue
@@ -185,7 +186,7 @@ if __name__ == "__main__":
                 continue
             if op["author"] in member_accounts and op["voter"] in accounts:
                 authorperm=construct_authorperm(op["author"], op["permlink"])
-                vote = Vote(op["voter"], authorperm=authorperm, steem_instance=stm)
+                vote = Vote(op["voter"], authorperm=authorperm, hive_instance=stm)
                 print("member %s upvoted with %d" % (op["author"], int(vote["rshares"])))
                 member_data[op["author"]]["rewarded_rshares"] += int(vote["rshares"])
                 member_data[op["author"]]["balance_rshares"] -= int(vote["rshares"])
@@ -194,29 +195,29 @@ if __name__ == "__main__":
                 if upvote_delay is None:
                     upvote_delay = 300
                 performance = 0
-                c = Comment(authorperm, steem_instance=stm)
+                c = Comment(authorperm, hive_instance=stm)
                 
                 try:
                     
-                    curation_rewards_SBD = c.get_curation_rewards(pending_payout_SBD=True)
-                    curation_SBD = curation_rewards_SBD["active_votes"][vote["voter"]]
-                    if vote_SBD > 0:
-                        performance = (float(curation_SBD) / vote_SBD * 100)
+                    curation_rewards_HBD = c.get_curation_rewards(pending_payout_HBD=True)
+                    curation_HBD = curation_rewards_HBD["active_votes"][vote["voter"]]
+                    if vote_HBD > 0:
+                        performance = (float(curation_HBD) / vote_HBD * 100)
                     else:
                         performance = 0                    
                 except:
                     performance = 0
-                    curation_rewards_SBD = None
+                    curation_rewards_HBD = None
                     
                 rshares = int(vote["rshares"])
-                vote_SBD = stm.rshares_to_sbd(int(vote["rshares"]))
+                vote_HBD = stm.rshares_to_hbd(int(vote["rshares"]))
 
                 best_performance = 0
                 best_time_delay = 0
                 for v in c.get_votes():
-                    v_SBD = stm.rshares_to_sbd(int(v["rshares"]))
-                    if v_SBD > 0 and int(v["rshares"]) > rshares * 0.5 and curation_rewards_SBD is not None:
-                        p = float(curation_rewards_SBD["active_votes"][v["voter"]]) / v_SBD * 100
+                    v_HBD = stm.rshares_to_hbd(int(v["rshares"]))
+                    if v_HBD > 0 and int(v["rshares"]) > rshares * 0.5 and curation_rewards_HBD is not None:
+                        p = float(curation_rewards_HBD["active_votes"][v["voter"]]) / v_HBD * 100
                         if p > best_performance:
                             best_performance = p
                             if "time" in v:
