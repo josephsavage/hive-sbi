@@ -1,6 +1,7 @@
 from beem.account import Account
 from beem.amount import Amount
 from beem import Steem
+from beem import Hive
 from beem.instance import set_shared_steem_instance
 from beem.utils import formatTimeString
 from beem.nodelist import NodeList
@@ -55,7 +56,7 @@ if __name__ == "__main__":
             nodes.update_nodes()
         except:
             print("could not update nodes") 
-        stm = Steem(node=nodes.get_nodes(hive=hive_blockchain))
+        stm = Hive(node=nodes.get_nodes(hive=hive_blockchain))
         set_shared_steem_instance(stm)
         
     
