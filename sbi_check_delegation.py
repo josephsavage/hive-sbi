@@ -1,8 +1,7 @@
 from beem.account import Account
 from beem.amount import Amount
-from beem import Steem
 from beem import Hive
-from beem.instance import set_shared_steem_instance
+from beem.instance import set_shared_hive_instance
 from beem.utils import formatTimeString
 from beem.nodelist import NodeList
 import re
@@ -57,7 +56,7 @@ if __name__ == "__main__":
         except:
             print("could not update nodes") 
         stm = Hive(node=nodes.get_nodes(hive=hive_blockchain))
-        set_shared_steem_instance(stm)
+        set_shared_hive_instance(stm)
         
     
         transferStorage = TransferTrx(db)
