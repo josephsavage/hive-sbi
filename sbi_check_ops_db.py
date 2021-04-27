@@ -1,7 +1,7 @@
 from beem.account import Account
 from beem.amount import Amount
 from beem import Hive
-from beem.instance import set_shared_hive_instance
+from beem.instance import set_shared_steem_instance
 from beem.nodelist import NodeList
 from beem.blockchain import Blockchain
 from beem.utils import formatTimeString, addTzInfo
