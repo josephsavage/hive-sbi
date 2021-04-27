@@ -1,7 +1,6 @@
 from beem.utils import formatTimeString, resolve_authorperm, construct_authorperm, addTzInfo
 from beem.nodelist import NodeList
 from beem.comment import Comment
-from beem import Steem
 from beem import Hive
 from datetime import datetime, timedelta
 from beem.instance import set_shared_steem_instance
